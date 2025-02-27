@@ -14,7 +14,7 @@ SALESFORCE_SECURITY_TOKEN = '3qbRDV3mTpPPqQXD4mWea3km'
 SUPABASE_URL='https://potljjxcvdgdzvjcctub.supabase.co'
 SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBvdGxqanhjdmRnZHp2amNjdHViIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDA0NzI2MjksImV4cCI6MjA1NjA0ODYyOX0.ENERcdaG6zRwU-F1CqqZX9nGH1LIWKX3R-nSQjX2uUI'
 
-@app.route('/api/endpoint', methods=['GET'])
+@app.route('/api/action', methods=['GET'])
 def receive_salesforce_request():
     try:
         print("Received GET request from Salesforce:")
@@ -105,7 +105,7 @@ def upsert_devices_from_discovery_provider():
     except Exception as e:
         print(f"Error: {e}")
         traceback.print_exc()
-        
+
 if __name__ == '__main__':
     print("Waiting for requests...")
     app.run(host='0.0.0.0', port=5000, debug=True)
