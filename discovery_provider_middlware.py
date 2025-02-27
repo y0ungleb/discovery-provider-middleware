@@ -3,6 +3,9 @@ import json
 import traceback
 from simple_salesforce import Salesforce
 from supabase import create_client, Client
+from flask import Flask, request, jsonify
+
+app = Flask(__name__)
 
 SALESFORCE_USERNAME = 'gleb.goose@cunning-impala-v6bgqi.com'
 SALESFORCE_PASSWORD = 'CunningImpala123'
@@ -10,6 +13,18 @@ SALESFORCE_SECURITY_TOKEN = '3qbRDV3mTpPPqQXD4mWea3km'
 
 SUPABASE_URL='https://potljjxcvdgdzvjcctub.supabase.co'
 SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBvdGxqanhjdmRnZHp2amNjdHViIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDA0NzI2MjksImV4cCI6MjA1NjA0ODYyOX0.ENERcdaG6zRwU-F1CqqZX9nGH1LIWKX3R-nSQjX2uUI'
+
+@app.route('/api/endpoint', methods=['GET'])
+def receive_salesforce_request():
+    try:
+        print("Received GET request from Salesforce:")
+
+        return jsonify({
+            "status": "success",
+            "message": "GET request received"
+        }), 200
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 def connect_to_supabase():
     return create_client(SUPABASE_URL, SUPABASE_KEY)
@@ -74,7 +89,6 @@ def upsert_devices(filename, salesforce):
 
 def main():
     try:
-        print('main')
         salesforce = connect_to_salesforce()
         attribute_mapping = get_attribute_mapping(salesforce)
 
