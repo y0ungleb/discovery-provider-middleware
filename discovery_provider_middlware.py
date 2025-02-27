@@ -18,13 +18,17 @@ SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZ
 def receive_salesforce_request():
     try:
         print("Received GET request from Salesforce:")
+        
 
         return jsonify({
             "status": "success",
             "message": "GET request received"
         }), 200
     except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 500
 
 def connect_to_supabase():
     return create_client(SUPABASE_URL, SUPABASE_KEY)
@@ -85,9 +89,8 @@ def insert_devices(filename, salesforce):
 def upsert_devices(filename, salesforce):
     result = salesforce.bulk2.Configuration_Item__c.upsert(f"./{filename}", external_id_field="External_Id__c", batch_size=10000)
     print(result)
-
-
-def main():
+    
+def upsert_devices_from_discovery_provider():
     try:
         salesforce = connect_to_salesforce()
         attribute_mapping = get_attribute_mapping(salesforce)
@@ -102,9 +105,6 @@ def main():
     except Exception as e:
         print(f"Error: {e}")
         traceback.print_exc()
-
-if __name__ == '__main__':
-    main()
 
 # TODO deploy to Heroku
 # TODO create environment variables for auth
