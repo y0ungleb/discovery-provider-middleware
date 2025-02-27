@@ -3,24 +3,23 @@ import json
 import os
 import traceback
 from simple_salesforce import Salesforce
-from supabase import create_client, Client
-from flask import Flask, request, jsonify
+from supabase import create_client
+from flask import Flask, jsonify
 
 app = Flask(__name__)
 
-SALESFORCE_USERNAME = 'gleb.goose@cunning-impala-v6bgqi.com'
-SALESFORCE_PASSWORD = 'CunningImpala123'
-SALESFORCE_SECURITY_TOKEN = '3qbRDV3mTpPPqQXD4mWea3km'
+SALESFORCE_USERNAME = os.environ.get('SALESFORCE_USERNAME')
+SALESFORCE_PASSWORD = os.environ.get('SALESFORCE_PASSWORD')
+SALESFORCE_SECURITY_TOKEN = os.environ.get('SALESFORCE_SECURITY_TOKEN')
 
-SUPABASE_URL='https://potljjxcvdgdzvjcctub.supabase.co'
-SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBvdGxqanhjdmRnZHp2amNjdHViIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDA0NzI2MjksImV4cCI6MjA1NjA0ODYyOX0.ENERcdaG6zRwU-F1CqqZX9nGH1LIWKX3R-nSQjX2uUI'
+SUPABASE_URL = os.environ.get('SUPABASE_URL')
+SUPABASE_KEY = os.environ.get('SUPABASE_KEY')
 
 @app.route('/api/action', methods=['GET'])
 def receive_salesforce_request():
     try:
         print("Received GET request from Salesforce:")
-        print(os.environ.get('TEST'))
-
+        upsert_devices_from_discovery_provider()
 
         return jsonify({
             "status": "success",
@@ -108,6 +107,4 @@ def upsert_devices_from_discovery_provider():
         print(f"Error: {e}")
         traceback.print_exc()
 
-# TODO deploy to Heroku
-# TODO create environment variables for auth
 # TODO add saving to Heroku database
