@@ -67,7 +67,7 @@ def save_csv_file(data, filename='devices_data.csv'):
 
 def upsert_devices(filename, salesforce):
     try:
-        return salesforce.bulk2.Configuration_Item__c.upsert(f"./{filename}", external_id_field=SALESFORCE_EXTERNAL_ID_FIELD, batch_size=SALESFORCE_BATCH_SIZE)
+        return salesforce.bulk2.Configuration_Item__c.upsert(f"./{filename}", external_id_field=SALESFORCE_EXTERNAL_ID_FIELD, batch_size=int(SALESFORCE_BATCH_SIZE))
     finally:
         os.remove(filename) if os.path.exists(filename) else None
 
