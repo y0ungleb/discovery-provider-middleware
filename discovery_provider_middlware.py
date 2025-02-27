@@ -1,110 +1,105 @@
 import csv
-import json
+import logging
 import os
-import traceback
 from simple_salesforce import Salesforce
 from supabase import create_client
 from flask import Flask, jsonify
 
+def get_environment_variable(variable_name):
+    return os.environ.get(variable_name) or logging.error(f"Missing environment variable: {variable_name}")
+
+SALESFORCE_USERNAME = get_environment_variable('SALESFORCE_USERNAME')
+SALESFORCE_PASSWORD = get_environment_variable('SALESFORCE_PASSWORD')
+SALESFORCE_SECURITY_TOKEN = get_environment_variable('SALESFORCE_SECURITY_TOKEN')
+SALESFORCE_EXTERNAL_ID_FIELD = get_environment_variable('SALESFORCE_EXTERNAL_ID_FIELD')
+SALESFORCE_MAPPING_OBJECT_NAME = get_environment_variable('SALESFORCE_MAPPING_OBJECT_NAME')
+SALESFORCE_SOURCE_FIELD = get_environment_variable('SALESFORCE_SOURCE_FIELD')
+SALESFORCE_DESTINATION_FIELD = get_environment_variable('SALESFORCE_DESTINATION_FIELD')
+SALESFORCE_BATCH_SIZE = get_environment_variable('SALESFORCE_BATCH_SIZE')
+
+SUPABASE_TABLE_NAME = get_environment_variable('SUPABASE_TABLE_NAME')
+SUPABASE_URL = get_environment_variable('SUPABASE_URL')
+SUPABASE_KEY = get_environment_variable('SUPABASE_KEY')
+
 app = Flask(__name__)
-
-SALESFORCE_USERNAME = os.environ.get('SALESFORCE_USERNAME')
-SALESFORCE_PASSWORD = os.environ.get('SALESFORCE_PASSWORD')
-SALESFORCE_SECURITY_TOKEN = os.environ.get('SALESFORCE_SECURITY_TOKEN')
-
-SUPABASE_URL = os.environ.get('SUPABASE_URL')
-SUPABASE_KEY = os.environ.get('SUPABASE_KEY')
 
 @app.route('/api/action', methods=['GET'])
 def receive_salesforce_request():
     try:
-        print("Received GET request from Salesforce:")
         upsert_devices_from_discovery_provider()
-
-        return jsonify({
-            "status": "success",
-            "message": "GET request received"
-        }), 200
+        return jsonify(status="success", message="Devices successfully updated."), 200
     except Exception as e:
-        return jsonify({
-            "status": "error",
-            "message": str(e)
-        }), 500
+        return jsonify(status="error", message=str(e)), 500
+
+def get_environment_variable(variable_name):
+    value = os.environ.get(variable_name)
+    if value is None:
+        logging.error(f"Missing environment variable: {variable_name}")
+    return value
 
 def connect_to_supabase():
     return create_client(SUPABASE_URL, SUPABASE_KEY)
 
 def get_data_from_supabase(supabase):
-    return supabase.table("Endpoints").select("*").execute()
+    return supabase.table(SUPABASE_TABLE_NAME).select("*").execute().data
 
 def connect_to_salesforce():
     return Salesforce(username=SALESFORCE_USERNAME, password=SALESFORCE_PASSWORD, security_token=SALESFORCE_SECURITY_TOKEN)
 
 def get_attribute_mapping_from_salesforce(salesforce):
-    return salesforce.query_all('SELECT Id, Source_Field__c, Destination_Field__c FROM Attribute_Mapping__mdt')
+    return salesforce.query_all(f'SELECT Id, {SALESFORCE_SOURCE_FIELD}, {SALESFORCE_DESTINATION_FIELD} FROM {SALESFORCE_MAPPING_OBJECT_NAME}')
 
-def create_attribute_mapping_from_response(response):
-    attribute_mapping = {}
-
-    if 'records' in response:
-        for record in response['records']:
-            source_field = record.get('Source_Field__c')
-            destination_field = record.get('Destination_Field__c')
-
-            if source_field and destination_field:
-                attribute_mapping[source_field] = destination_field
-
-    return attribute_mapping
+def create_attribute_mapping(response):
+    return {record.get(SALESFORCE_SOURCE_FIELD): record.get(SALESFORCE_DESTINATION_FIELD)
+        for record in response.get('records', [])
+        if record.get(SALESFORCE_SOURCE_FIELD) and record.get(SALESFORCE_DESTINATION_FIELD)}
 
 def get_attribute_mapping(salesforce):
-    response = get_attribute_mapping_from_salesforce(salesforce)
-    return create_attribute_mapping_from_response(response)
+    return create_attribute_mapping(get_attribute_mapping_from_salesforce(salesforce))
 
 def apply_custom_mapping(data, attribute_mapping):
-    mapped_data = []
-    for item in data:
-        mapped_item = {}
-        for tanium_field, salesforce_field in attribute_mapping.items():
-            if tanium_field in item:
-                mapped_item[salesforce_field] = item[tanium_field]
-            else:
-                mapped_item[salesforce_field] = None
-        mapped_data.append(mapped_item)
-    return mapped_data
+    return [
+        {salesforce_field: item.get(discovery_provider_field, None)
+        for discovery_provider_field, salesforce_field in attribute_mapping.items()}
+        for item in data
+    ]
 
 def save_csv_file(data, filename='devices_data.csv'):
-    if not data:
-        return ""
-
-    with open(filename, mode='w', newline='', encoding='utf-8') as file:
-        writer = csv.DictWriter(file, fieldnames=data[0].keys())
-        writer.writeheader()
-        writer.writerows(data)
-
-    return filename
-
-def insert_devices(filename, salesforce):
-    result = salesforce.bulk2.Configuration_Item__c.insert(f"./{filename}", batch_size=10000)
-    print(result)
+    if data:
+        with open(filename, mode='w', newline='', encoding='utf-8') as file:
+            csv.DictWriter(file, fieldnames=data[0].keys()).writeheader().writerows(data)
+        return filename
+    return ""
 
 def upsert_devices(filename, salesforce):
-    result = salesforce.bulk2.Configuration_Item__c.upsert(f"./{filename}", external_id_field="External_Id__c", batch_size=10000)
-    print(result)
+    try:
+        return salesforce.bulk2.Configuration_Item__c.upsert(f"./{filename}", external_id_field=SALESFORCE_EXTERNAL_ID_FIELD, batch_size=SALESFORCE_BATCH_SIZE)
+    finally:
+        os.remove(filename) if os.path.exists(filename) else None
 
 def upsert_devices_from_discovery_provider():
     try:
+        logging.info("Connecting to Salesforce...")
         salesforce = connect_to_salesforce()
+
+        logging.info("Getting attribute_mapping...")
         attribute_mapping = get_attribute_mapping(salesforce)
 
+        logging.info("Connecting to Supabase...")
         supabase = connect_to_supabase()
+
+        logging.info("Getting data from Supabase...")
         data = get_data_from_supabase(supabase)
 
-        mapped_data = apply_custom_mapping(json.loads(data.json())['data'], attribute_mapping)
+        logging.info("Applying custom mapping...")
+        mapped_data = apply_custom_mapping(data, attribute_mapping)
+
+        logging.info("Saving CSV file...")
         filename = save_csv_file(mapped_data)
 
-        upsert_devices(filename, salesforce)
-    except Exception as e:
-        print(f"Error: {e}")
-        traceback.print_exc()
+        logging.info("Upserting devices data...")
+        result = upsert_devices(filename, salesforce)
 
-# TODO add saving to Heroku database
+        logging.info(result)
+    except Exception as e:
+        logging.error(f"Error in upsert_devices_from_discovery_provider: {e}", exc_info=True)
