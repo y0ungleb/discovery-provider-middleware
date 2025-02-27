@@ -75,27 +75,27 @@ def upsert_devices(filename, salesforce):
 
 def upsert_devices_from_discovery_provider():
     try:
-        logging.info("Connecting to Salesforce...")
+        print("Connecting to Salesforce...")
         salesforce = connect_to_salesforce()
 
-        logging.info("Getting attribute_mapping...")
+        print("Getting attribute_mapping...")
         attribute_mapping = get_attribute_mapping(salesforce)
 
-        logging.info("Connecting to Supabase...")
+        print("Connecting to Supabase...")
         supabase = connect_to_supabase()
 
-        logging.info("Getting data from Supabase...")
+        print("Getting data from Supabase...")
         data = get_data_from_supabase(supabase)
 
-        logging.info("Applying custom mapping...")
+        print("Applying custom mapping...")
         mapped_data = apply_custom_mapping(data, attribute_mapping)
 
-        logging.info("Saving CSV file...")
+        print("Saving CSV file...")
         filename = save_csv_file(mapped_data)
 
-        logging.info("Upserting devices data...")
+        print("Upserting devices data...")
         result = upsert_devices(filename, salesforce)
 
-        logging.info(result)
+        print(result)
     except Exception as e:
         logging.error(f"Error in upsert_devices_from_discovery_provider: {e}", exc_info=True)
