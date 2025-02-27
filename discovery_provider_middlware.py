@@ -61,7 +61,9 @@ def apply_custom_mapping(data, attribute_mapping):
 def save_csv_file(data, filename='devices_data.csv'):
     if data:
         with open(filename, mode='w', newline='', encoding='utf-8') as file:
-            csv.DictWriter(file, fieldnames=data[0].keys()).writerows([data[0]] + data)
+            writer = csv.DictWriter(file, fieldnames=data[0].keys())
+            writer.writeheader()
+            writer.writerows(data)
         return filename
     return ""
 
