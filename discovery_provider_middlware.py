@@ -31,12 +31,6 @@ def receive_salesforce_request():
     except Exception as e:
         return jsonify(status="error", message=str(e)), 500
 
-def get_environment_variable(variable_name):
-    value = os.environ.get(variable_name)
-    if value is None:
-        logging.error(f"Missing environment variable: {variable_name}")
-    return value
-
 def connect_to_supabase():
     return create_client(SUPABASE_URL, SUPABASE_KEY)
 
@@ -67,7 +61,7 @@ def apply_custom_mapping(data, attribute_mapping):
 def save_csv_file(data, filename='devices_data.csv'):
     if data:
         with open(filename, mode='w', newline='', encoding='utf-8') as file:
-            csv.DictWriter(file, fieldnames=data[0].keys()).writeheader().writerows(data)
+            csv.DictWriter(file, fieldnames=data[0].keys()).writerows([data[0]] + data)
         return filename
     return ""
 
