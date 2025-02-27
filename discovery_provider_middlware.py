@@ -1,5 +1,6 @@
 import csv
 import json
+import os
 import traceback
 from simple_salesforce import Salesforce
 from supabase import create_client, Client
@@ -18,6 +19,7 @@ SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZ
 def receive_salesforce_request():
     try:
         print("Received GET request from Salesforce:")
+        print(os.environ.get('TEST'))
 
 
         return jsonify({
