@@ -74,6 +74,7 @@ def upsert_devices(filename, salesforce):
 
 def main():
     try:
+        print('main')
         salesforce = connect_to_salesforce()
         attribute_mapping = get_attribute_mapping(salesforce)
 
