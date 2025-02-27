@@ -1,1 +1,1 @@
-worker: python discovery_provider_middlware.py
+web: gunicorn discovery_provider_middlware:app
