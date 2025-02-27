@@ -106,10 +106,6 @@ def upsert_devices_from_discovery_provider():
         print(f"Error: {e}")
         traceback.print_exc()
 
-if __name__ == '__main__':
-    print("Waiting for requests...")
-    app.run(host='0.0.0.0', port=5000, debug=True)
-
 # TODO deploy to Heroku
 # TODO create environment variables for auth
 # TODO add saving to Heroku database
