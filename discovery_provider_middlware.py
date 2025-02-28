@@ -89,6 +89,7 @@ def upsert_devices_from_discovery_provider():
 
         print("Applying custom mapping...")
         mapped_data = apply_custom_mapping(data, attribute_mapping)
+        print(len(mapped_data))
 
         print("Saving CSV file...")
         filename = save_csv_file(mapped_data)
